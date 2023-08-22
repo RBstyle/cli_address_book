@@ -2,6 +2,7 @@ import os, ast
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 path_to_phone_book = f"{BASE_DIR}/data/address_book.txt"
 
@@ -25,13 +26,14 @@ def paginated_records(phone_book: list) -> str:
                 print(readeble_view(list_of_records.pop(0)))
         if len(list_of_records):
             print(
-                f'Страница {page}.\nНажмите ENTER для отображения страницы {page + 1}.(Введите "Выход" для возврата в начало)'
+                f'Страница {page}.\nНажмите ENTER для отображения страницы {page + 1}.(Введите "Старт" для возврата в начало)'
             )
-            if input() == "Выход":
-                break
+            if input() == "Старт":
+                return
         else:
             input(f"Страница {page}.\nНажмите ENTER для выхода из режима просмотра.")
         page += 1
+    return
 
 
 def readeble_view(record: dict) -> str:

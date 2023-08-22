@@ -1,7 +1,8 @@
-from dataclasses import dataclass, field
+import json
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
-from views import get_last_id
+from core.utils import get_last_id
 
 
 @dataclass
@@ -16,3 +17,9 @@ class Record:
 
     def __post_init__(self):
         self.id = get_last_id() + 1
+
+    def dict(self):
+        return {k: str(v) for k, v in asdict(self).items()}
+
+    def str_dict(self):
+        return json.dumps(asdict(self))

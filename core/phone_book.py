@@ -2,7 +2,8 @@ import ast
 from pathlib import Path
 from typing import Final, NoReturn
 
-from views import paginated_records, readeble_view
+from core.utils import paginated_records, readeble_view
+from core.storage import Record
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PATH_TO_PHONE_BOOK: Final = f"{BASE_DIR}/data/address_book.txt"
@@ -17,9 +18,18 @@ class PhoneBook:
                 self.phone_book.append(ast.literal_eval(record))
 
     def add_record(self, data: str) -> NoReturn:
+        record_dict = ast.literal_eval(data)
+        record = Record(
+            last_name=record_dict["last_name"],
+            first_name=record_dict["first_name"],
+            patronymic=record_dict["patronymic"],
+            company=record_dict["company"],
+            work_phone=record_dict["work_phone"],
+            mobile_phone=record_dict["mobile_phone"],
+        )
         with open(PATH_TO_PHONE_BOOK, "a+") as f:
-            f.write(data + "\n")
-            self.phone_book.append(ast.literal_eval(data))
+            f.write(record.str_dict() + "\n")
+            self.phone_book.append(record.dict())
 
     def get_all_records(self) -> str:
         return paginated_records(self.phone_book)
