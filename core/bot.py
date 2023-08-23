@@ -1,21 +1,28 @@
-import json
-import phonenumbers
-
 from core.phone_book import PhoneBook
+from core.storage import Record
+from core.utils import (
+    str_input_validator,
+    phone_number_validator,
+    readeble_view,
+    border_msg,
+)
 
 
 def start():
     phone_book = PhoneBook()
     add_record_menu = "1"
     get_all_records_menu = "2"
-    edit_record_menu = "3"
-    search_record_menu = "4"
+    get_record_by_id_menu = "3"
+    edit_record_menu = "4"
+    search_record_menu = "5"
     while True:
         print(
             f"""
 Добро пожаловать!
+
 Для добавления запись введите: {add_record_menu}
 Для просмотра всех записей введите: {get_all_records_menu}
+Для поиска запиcи по ID введите: {get_record_by_id_menu}
 Для редактирование записи введите: {edit_record_menu}
 Для поиска ведите: {search_record_menu}
 Для выхода ведите: Выход
@@ -24,12 +31,27 @@ def start():
         menu_answer = input(":")
         if menu_answer == add_record_menu:
             return add_record(phone_book)
+
         elif menu_answer == get_all_records_menu:
             return get_all_records(phone_book)
+
+        elif menu_answer == get_record_by_id_menu:
+            record = get_record(phone_book)
+            try:
+                result = readeble_view(record=record)
+                input(result + "\nНажмите Enter для возврата.")
+            except Exception as e:
+                border_msg(
+                    f"Ошибка получения записи: {e}"
+                )  # TODO вывести в отдельную функуцию
+            return start()
+
         elif menu_answer == edit_record_menu:
             return edit_record(phone_book)
+
         elif menu_answer == search_record_menu:
             return search_record(phone_book)
+
         elif menu_answer == "Выход":
             return None
         print("Ввод не корректный!")
@@ -41,10 +63,10 @@ def add_record(phone_book: PhoneBook):
         print("Введите имя")
         last_name: str = input(":")
     while not str_input_validator(first_name):
-        print("Введите Фамилию")
+        print("Введите фамилию")
         first_name: str = input(":")
     while not str_input_validator(patronymic):
-        print("Введите Отчество")
+        print("Введите отчество")
         patronymic: str = input(":")
     while not 3 < len(company) < 50:
         print("Введите название компании")
@@ -55,15 +77,17 @@ def add_record(phone_book: PhoneBook):
     while not phone_number_validator(mobile_phone):
         print("Введите номер телефона(сот.)")
         mobile_phone: str = input(":")
-    record = {
-        "last_name": last_name,
-        "first_name": first_name,
-        "patronymic": patronymic,
-        "company": company,
-        "work_phone": work_phone,
-        "mobile_phone": mobile_phone,
-    }
-    phone_book.add_record(json.dumps(record))
+    data = Record(
+        last_name=last_name,
+        first_name=first_name,
+        patronymic=patronymic,
+        company=company,
+        work_phone=work_phone,
+        mobile_phone=mobile_phone,
+    )
+    result = phone_book.add_record(data=data)
+    input(readeble_view(result) + "\nНажмите Enter для возврата.")
+    return start()
 
 
 def get_all_records(phone_book: PhoneBook):
@@ -71,23 +95,72 @@ def get_all_records(phone_book: PhoneBook):
     return start()
 
 
-def str_input_validator(str: str) -> bool:
-    if (
-        str.isalpha() and len(str) < 50
-    ):  # TODO подумать надо ли проверять на длину ввода
-        return True
-    else:
-        return False
+def get_record(phone_book: PhoneBook):
+    print("Введите ID записи")
+    record = {}
+    while not record:
+        input_id = input(":")
 
+        try:
+            record_id = int(input_id)
+        except:
+            print("ID может состоять только из цифр, повторите ввод.")
+            continue
 
-def phone_number_validator(phone_number: str) -> bool:
-    # TODO Прикрутить проверку на пустое значение
-    number = phonenumbers.parse(phone_number, "RU")
-    return phonenumbers.is_valid_number(number)
+        record = phone_book.get_record_by_id(int(record_id))
+    return record
 
 
 def edit_record(phone_book: PhoneBook):
-    pass
+    last_name = first_name = patronymic = company = work_phone = mobile_phone = "00"
+    record = get_record(phone_book=phone_book)
+    record_id = record["id"]
+    print(
+        "Введите новое значение или оставьте поле пустым для сохранения старого значения"
+    )
+
+    while not str_input_validator(last_name):
+        last_name = input(f"Имя({record['last_name']}): ")
+        if not last_name:
+            last_name = record["last_name"]
+
+    while not str_input_validator(first_name):
+        first_name = input(f"Фамилия({record['first_name']}): ")
+        if not first_name:
+            first_name = record["first_name"]
+
+    while not str_input_validator(patronymic):
+        patronymic = input(f"Отчество({record['patronymic']}): ")
+        if not patronymic:
+            patronymic = record["patronymic"]
+
+    while not str_input_validator(company):
+        company = input(f"Название компании({record['company']}): ")
+        if not company:
+            company = record["company"]
+
+    while not phone_number_validator(work_phone):
+        work_phone = input(f"Рабочий телефон({record['work_phone']}): ")
+        if not work_phone:
+            work_phone = record["work_phone"]
+
+    while not phone_number_validator(mobile_phone):
+        mobile_phone = input(f"Мобильный телефон({record['mobile_phone']}): ")
+        if not mobile_phone:
+            mobile_phone = record["mobile_phone"]
+    data = {
+        "id": int(record_id),
+        "last_name": last_name,
+        "first_name": first_name,
+        "patronymic": patronymic,
+        "company": company,
+        "work_phone": work_phone,
+        "mobile_phone": mobile_phone,
+    }
+    phone_book.edit_record(data, record)
+    record = phone_book.get_record_by_id(int(record_id))
+    input(readeble_view(data) + "\nНажмите Enter для возврата.")
+    return start()
 
 
 def search_record(phone_book: PhoneBook):
