@@ -1,8 +1,9 @@
-import ast
-from pathlib import Path
-from typing import Final, NoReturn
+import ast, fileinput
 
-from core.utils import paginated_records, readeble_view
+from pathlib import Path
+from typing import Final
+
+from core.utils import paginated_records, get_last_id
 from core.storage import Record
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,30 +18,28 @@ class PhoneBook:
             for record in phone_book:
                 self.phone_book.append(ast.literal_eval(record))
 
-    def add_record(self, data: str) -> NoReturn:
-        record_dict = ast.literal_eval(data)
-        record = Record(
-            last_name=record_dict["last_name"],
-            first_name=record_dict["first_name"],
-            patronymic=record_dict["patronymic"],
-            company=record_dict["company"],
-            work_phone=record_dict["work_phone"],
-            mobile_phone=record_dict["mobile_phone"],
-        )
+    def add_record(self, data: Record):
         with open(PATH_TO_PHONE_BOOK, "a+") as f:
-            f.write(record.str_dict() + "\n")
-            self.phone_book.append(record.dict())
+            f.write(data.str_dict() + "\n")
+            self.phone_book.append(data.dict())
+        return self.get_record_by_id(get_last_id())
+
+    def edit_record(self, data: dict, record):
+        # self.phone_book.append(data) TODO не обновляет self.phone_book
+        record = str(record).replace("'", '"')
+        data = str(data).replace("'", '"')
+        with fileinput.FileInput(
+            PATH_TO_PHONE_BOOK, inplace=True, backup=".bak"
+        ) as file:
+            for line in file:
+                print(line.replace(record, data), end="")
 
     def get_all_records(self) -> str:
         return paginated_records(self.phone_book)
 
-    def get_record_by_id(self, id: int) -> str:
-        with open(PATH_TO_PHONE_BOOK, "r") as self.phone_book:
-            record_by_id = [
-                record
-                for record in self.phone_book
-                if ast.literal_eval(record)["id"] == id
-            ]
+    def get_record_by_id(self, id: int) -> dict:
+        record_by_id = [record for record in self.phone_book if record["id"] == id]
         if not record_by_id:
-            return "Такой записи не существует!"
-        return readeble_view(ast.literal_eval(record_by_id[0]))
+            print("Такой записи не существует!")
+            return {}
+        return record_by_id[0]

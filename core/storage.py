@@ -7,7 +7,7 @@ from core.utils import get_last_id
 
 @dataclass
 class Record:
-    id: str = field(init=False, repr=True)
+    id: int = field(init=False, repr=True)
     last_name: Optional[str] = None
     first_name: Optional[str] = None
     patronymic: Optional[str] = None
@@ -19,7 +19,7 @@ class Record:
         self.id = get_last_id() + 1
 
     def dict(self):
-        return {k: str(v) for k, v in asdict(self).items()}
+        return {k: v for k, v in asdict(self).items()}
 
     def str_dict(self):
         return json.dumps(asdict(self))

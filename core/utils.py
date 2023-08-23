@@ -1,4 +1,4 @@
-import os, ast
+import os, ast, phonenumbers
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -15,16 +15,19 @@ def paginated_records(phone_book: list) -> str:
     если иное не указано в переменной окружения REC_ON_PAGE в файле .env
     """
     rec_on_page = int(os.getenv("REC_ON_PAGE", 10))
-    list_of_records = phone_book.copy()
-    if not list_of_records:
+    if not phone_book:
         return print("Телефонная книга пуста.")
     page = 1
 
-    while list_of_records:
+    while phone_book:
         for i in range(rec_on_page):
-            if list_of_records:
-                print(readeble_view(list_of_records.pop(0)))
-        if len(list_of_records):
+            if phone_book:
+                record = phone_book.pop(0)
+                try:
+                    print(readeble_view(record=record))
+                except Exception as e:
+                    border_msg(f"Ошибка получения записи: {e}")
+        if len(phone_book):
             print(
                 f'Страница {page}.\nНажмите ENTER для отображения страницы {page + 1}.(Введите "Старт" для возврата в начало)'
             )
@@ -59,3 +62,25 @@ def get_last_id() -> int:
     if last_id:
         return max(last_id)
     return 0
+
+
+def str_input_validator(str: str) -> bool:
+    if (
+        str.isalpha() and len(str) < 50
+    ):  # TODO подумать надо ли проверять на длину ввода
+        return True
+    else:
+        return False
+
+
+def phone_number_validator(phone_number: str) -> bool:
+    # TODO Прикрутить проверку на пустое значение
+    number = phonenumbers.parse(phone_number, "RU")
+    return phonenumbers.is_valid_number(number)
+
+
+def border_msg(msg):
+    row = len(msg)
+    h = "".join(["+"] + ["-" * row] + ["+"])
+    result = h + "\n" "|" + msg + "|" "\n" + h
+    print("\x1b[1;37;41m" + result + "\x1b[0m")
