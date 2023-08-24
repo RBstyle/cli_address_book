@@ -43,3 +43,25 @@ class PhoneBook:
             print("Такой записи не существует!")
             return {}
         return record_by_id[0]
+
+    def search_records(self, search_terms: dict):
+        search_result: list = list()
+
+        for field, term in search_terms.items():
+            try:
+                current_filter = [
+                    record["id"] for record in self.phone_book if record[field] == term
+                ]
+            except:
+                continue
+
+            if not current_filter:
+                continue
+
+            search_result.append(current_filter)
+        id_list = set(search_result[0])
+        for s in search_result[1:]:
+            id_list.intersection_update(s)
+
+        result = [self.get_record_by_id(id=id) for id in list(id_list)]
+        return paginated_records(result)
