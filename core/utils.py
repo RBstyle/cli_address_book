@@ -74,9 +74,11 @@ def str_input_validator(str: str) -> bool:
 
 
 def phone_number_validator(phone_number: str) -> bool:
-    # TODO Прикрутить проверку на пустое значение
-    number = phonenumbers.parse(phone_number, "RU")
-    return phonenumbers.is_valid_number(number)
+    try:
+        number = phonenumbers.parse(phone_number, "RU")
+        return phonenumbers.is_valid_number(number)
+    except:
+        return False
 
 
 def border_msg(msg):

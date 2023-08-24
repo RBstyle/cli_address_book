@@ -9,6 +9,7 @@ from core.utils import (
 
 
 def start():
+    """Starts the bot"""
     phone_book = PhoneBook()
     add_record_menu = "1"
     get_all_records_menu = "2"
@@ -30,13 +31,14 @@ def start():
         )
         menu_answer = input(":")
         if menu_answer == add_record_menu:
-            return add_record(phone_book)
+            return add_record(phone_book=phone_book)
 
         elif menu_answer == get_all_records_menu:
-            return get_all_records(phone_book)
+            return get_all_records(phone_book=phone_book)
 
         elif menu_answer == get_record_by_id_menu:
-            record = get_record(phone_book)
+            record = get_record(phone_book=phone_book)
+
             try:
                 result = readeble_view(record=record)
                 input(result + "\nНажмите Enter для возврата.")
@@ -47,10 +49,10 @@ def start():
             return start()
 
         elif menu_answer == edit_record_menu:
-            return edit_record(phone_book)
+            return edit_record(phone_book=phone_book)
 
         elif menu_answer == search_record_menu:
-            return search_record(phone_book)
+            return search_record(phone_book=phone_book)
 
         elif menu_answer == "Выход":
             return None
@@ -58,6 +60,7 @@ def start():
 
 
 def add_record(phone_book: PhoneBook):
+    """Entering information to create an record"""
     last_name = first_name = patronymic = company = work_phone = mobile_phone = "00"
     while not str_input_validator(last_name):
         print("Введите имя")
@@ -164,28 +167,22 @@ def edit_record(phone_book: PhoneBook):
 
 
 def search_record(phone_book: PhoneBook):
-    fields = {
-        "Имя": "last_name",
-        "Фамилия": "first_name",
-        "Отчество": "patronymic",
-        "Название компании": "company",
-        "Рабочий телефон": "work_phone",
-        "Мобильный телефон": "mobile_phone",
-    }
-    options = [n for n in range(1, len(fields.keys()) + 1)]
+    verbose_fields = Record().get_verbose_field_names()
+    fields = Record().get_field_names()
+    options = verbose_fields.keys()
     search_terms: list = list()
     print("Выберите критерий для поиска:")
-    for count, key in enumerate(fields.keys(), start=1):
+    for count, key in verbose_fields.items():
         print(f"{key} - {count}")
     while not search_terms:
         input_terms = input(
             f"""
 Введите критерии поиска:
 (для поиска по нескольким полям введите номера через пробел)
-:"""
+"""
         )
         try:
-            list_of_terms = [int(s) for s in input_terms.split()]
+            list_of_terms = [int(term) for term in input_terms.split()]
             if set(list_of_terms).issubset(options):
                 search_terms = list_of_terms
             else:
@@ -195,11 +192,9 @@ def search_record(phone_book: PhoneBook):
                 "Необходимо ввести либо номер ответа либо несколько номеров через пробел!"
             )
     terms_dict: dict = dict()
-    for count, value in enumerate(fields.values(), start=1):
+    for count, _ in verbose_fields.items():
         if count in search_terms:
-            terms_dict[value] = input(
-                f"Введите {dict(enumerate(fields.keys(), start=1))[count]}"
-            )
-    print(terms_dict)
+            field_name = verbose_fields[count].lower()
+            terms_dict[fields[count]] = input(f"Введите {field_name}:\n")
     phone_book.search_records(search_terms=terms_dict)
     return start()
