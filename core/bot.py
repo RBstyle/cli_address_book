@@ -104,7 +104,7 @@ def get_record(phone_book: PhoneBook):
         try:
             record_id = int(input_id)
         except:
-            print("ID может состоять только из цифр, повторите ввод.")
+            border_msg("ID может состоять только из цифр, повторите ввод.")
             continue
 
         record = phone_book.get_record_by_id(int(record_id))
@@ -164,4 +164,42 @@ def edit_record(phone_book: PhoneBook):
 
 
 def search_record(phone_book: PhoneBook):
-    pass
+    fields = {
+        "Имя": "last_name",
+        "Фамилия": "first_name",
+        "Отчество": "patronymic",
+        "Название компании": "company",
+        "Рабочий телефон": "work_phone",
+        "Мобильный телефон": "mobile_phone",
+    }
+    options = [n for n in range(1, len(fields.keys()) + 1)]
+    search_terms: list = list()
+    print("Выберите критерий для поиска:")
+    for count, key in enumerate(fields.keys(), start=1):
+        print(f"{key} - {count}")
+    while not search_terms:
+        input_terms = input(
+            f"""
+Введите критерии поиска:
+(для поиска по нескольким полям введите номера через пробел)
+:"""
+        )
+        try:
+            list_of_terms = [int(s) for s in input_terms.split()]
+            if set(list_of_terms).issubset(options):
+                search_terms = list_of_terms
+            else:
+                raise ValueError()
+        except:
+            border_msg(
+                "Необходимо ввести либо номер ответа либо несколько номеров через пробел!"
+            )
+    terms_dict: dict = dict()
+    for count, value in enumerate(fields.values(), start=1):
+        if count in search_terms:
+            terms_dict[value] = input(
+                f"Введите {dict(enumerate(fields.keys(), start=1))[count]}"
+            )
+    print(terms_dict)
+    phone_book.search_records(search_terms=terms_dict)
+    return start()
