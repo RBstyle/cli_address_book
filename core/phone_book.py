@@ -3,7 +3,7 @@ import ast, fileinput
 from pathlib import Path
 from typing import Final
 
-from core.utils import paginated_records, get_last_id
+from core.utils import paginated_records, get_last_id, border_msg
 from core.storage import Record
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +21,7 @@ class PhoneBook:
     def add_record(self, data: Record):
         with open(PATH_TO_PHONE_BOOK, "a+") as f:
             f.write(data.str_dict() + "\n")
-            self.phone_book.append(data.dict())
+            self.phone_book.append(data.__dict__)
         return self.get_record_by_id(get_last_id())
 
     def edit_record(self, data: dict, record):
@@ -59,6 +59,8 @@ class PhoneBook:
                 continue
 
             search_result.append(current_filter)
+        if not search_result:
+            return border_msg("Ничего не найдено.")
         id_list = set(search_result[0])
         for s in search_result[1:]:
             id_list.intersection_update(s)
