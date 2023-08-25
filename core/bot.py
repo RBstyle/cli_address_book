@@ -1,57 +1,35 @@
+from typing import NoReturn
+
 from core.phone_book import PhoneBook
+from core.utils import border_msg
 from core.storage import Record
-from core.utils import (
-    str_input_validator,
-    phone_number_validator,
-    readeble_view,
-    border_msg,
-)
+from core.mesasges import bot_messages
 
 
-def start():
-    """Starts the bot"""
-    phone_book = PhoneBook()
-    add_record_menu = "1"
-    get_all_records_menu = "2"
-    get_record_by_id_menu = "3"
-    edit_record_menu = "4"
-    search_record_menu = "5"
+def start() -> NoReturn:
+    """Начлало работы с приложением. Все действия и инструкции подробно описаны.
+    Управление меню осуществляется через командную строку посредством ввода соответсвтующей цифры пункта меню.
+    """
+
+    # при каждом вызове создается новый экземпляр класса с актуальными данными из БД
+    phone_book: PhoneBook = PhoneBook()
+
     while True:
-        print(
-            f"""
-Добро пожаловать!
-
-Для добавления запись введите: {add_record_menu}
-Для просмотра всех записей введите: {get_all_records_menu}
-Для поиска запиcи по ID введите: {get_record_by_id_menu}
-Для редактирование записи введите: {edit_record_menu}
-Для поиска ведите: {search_record_menu}
-Для выхода ведите: Выход
-"""
-        )
-        menu_answer = input(":")
-        if menu_answer == add_record_menu:
+        menu_answer = input(bot_messages.start_menu_message)
+        if menu_answer == bot_messages.menu_dict.get("add_record_menu"):
             return add_record(phone_book=phone_book)
 
-        elif menu_answer == get_all_records_menu:
-            return get_all_records(phone_book=phone_book)
-
-        elif menu_answer == get_record_by_id_menu:
-            record = get_record(phone_book=phone_book)
-
-            try:
-                result = readeble_view(record=record)
-                input(result + "\nНажмите Enter для возврата.")
-            except Exception as e:
-                border_msg(
-                    f"Ошибка получения записи: {e}"
-                )  # TODO вывести в отдельную функуцию
+        elif menu_answer == bot_messages.menu_dict.get("get_all_records_menu"):
+            phone_book.get_all_records()
             return start()
 
-        elif menu_answer == edit_record_menu:
+        elif menu_answer == bot_messages.menu_dict.get("get_record_by_id_menu"):
+            return get_record(phone_book=phone_book, menu_mode=True)
+
+        elif menu_answer == bot_messages.menu_dict.get("edit_record_menu"):
             return edit_record(phone_book=phone_book)
 
-        elif menu_answer == search_record_menu:
+        elif menu_answer == bot_messages.menu_dict.get("search_record_menu"):
             return search_record(phone_book=phone_book)
 
         elif menu_answer == "Выход":
@@ -59,121 +37,130 @@ def start():
         print("Ввод не корректный!")
 
 
-def add_record(phone_book: PhoneBook):
-    """Entering information to create an record"""
-    last_name = first_name = patronymic = company = work_phone = mobile_phone = "00"
-    while not str_input_validator(last_name):
-        print("Введите имя")
-        last_name: str = input(":")
-    while not str_input_validator(first_name):
-        print("Введите фамилию")
-        first_name: str = input(":")
-    while not str_input_validator(patronymic):
-        print("Введите отчество")
-        patronymic: str = input(":")
-    while not 3 < len(company) < 50:
-        print("Введите название компании")
-        company: str = input(":")
-    while not phone_number_validator(work_phone):
-        print("Введите номер телефона(раб.)")
-        work_phone: str = input(":")
-    while not phone_number_validator(mobile_phone):
-        print("Введите номер телефона(сот.)")
-        mobile_phone: str = input(":")
-    data = Record(
-        last_name=last_name,
-        first_name=first_name,
-        patronymic=patronymic,
-        company=company,
-        work_phone=work_phone,
-        mobile_phone=mobile_phone,
-    )
-    result = phone_book.add_record(data=data)
-    input(readeble_view(result) + "\nНажмите Enter для возврата.")
+def add_record(phone_book: PhoneBook) -> NoReturn:
+    """Логика пункта меню добавления записи"""
+
+    record: Record = Record()  # Экземпляр класса Record с дефолтными значениями
+    verbose_field_names: dict = record.get_verbose_field_names()
+    field_names: dict = record.get_field_names()
+
+    # Генератор сообщений на основе словаря имен полей
+    for index in field_names.keys():
+        attribute: dict = field_names[index]
+        verbose_name: dict = verbose_field_names[index].lower()
+
+        # Запрос информации пока значение не поменяется
+        while getattr(record, attribute) == None:
+            value: str = input(f"Введите {verbose_name}\n")
+            setattr(record, attribute, value)
+
+            # Блок проверки информации. Валидация строковых полей и полей с телефонами
+            if record.__annotations__[attribute] is str:
+                record.str_validator(attribute, default_data=None)
+            if attribute.count("phone"):
+                record.phone_validator(attribute, default_data=None)
+
+    # Добавление записи в телефонную книгу(класс PhoneBook)
+    result: Record = phone_book.add_record(data=record)
+
+    # Вывод карточки с новой записью и ожидание любого ввода для возврата в меню
+    input(result.readeble_view() + "\nНажмите Enter для возврата.")
     return start()
 
 
-def get_all_records(phone_book: PhoneBook):
-    phone_book.get_all_records()
-    return start()
+def get_record(phone_book: PhoneBook, menu_mode: bool = False) -> Record | None:
+    """Логика пункта меню поиска запиcи по ID"""
 
+    record: dict = dict()
 
-def get_record(phone_book: PhoneBook):
-    print("Введите ID записи")
-    record = {}
+    # Запрос ID пока не будет введен корректный
     while not record:
-        input_id = input(":")
+        input_id: str = input("Введите ID записи\n")
 
         try:
-            record_id = int(input_id)
+            record_id: int = int(input_id)
         except:
             border_msg("ID может состоять только из цифр, повторите ввод.")
             continue
 
-        record = phone_book.get_record_by_id(int(record_id))
-    return record
+        record: Record = phone_book.get_record_by_id(record_id)
+
+    # если функция вызвана не из меню, то возвращаем экземпляр Record
+    if not menu_mode:
+        return record
+    else:
+        try:
+            result: str = record.readeble_view()
+            input(result + "\nНажмите Enter для возврата.")
+        except Exception as e:
+            border_msg(
+                f"Ошибка получения записи: {e}"
+            )  # TODO вывести в отдельную функуцию
+        return start()
 
 
 def edit_record(phone_book: PhoneBook):
-    last_name = first_name = patronymic = company = work_phone = mobile_phone = "00"
-    record = get_record(phone_book=phone_book)
-    record_id = record["id"]
+    """Логика пункта меню редактирования запиcи"""
+
+    record: Record = get_record(phone_book=phone_book)  # Получение записи по ID
     print(
         "Введите новое значение или оставьте поле пустым для сохранения старого значения"
     )
+    # Словари имен полей(читабельные и имена в БД)
+    verbose_field_names: dict = record.get_verbose_field_names()
+    field_names: dict = record.get_field_names()
+    currrent_record: dict = record.__dict__.copy()  # Копия текущего состояния записи
 
-    while not str_input_validator(last_name):
-        last_name = input(f"Имя({record['last_name']}): ")
-        if not last_name:
-            last_name = record["last_name"]
+    # Генератор сообщений на основе словаря имен полей
+    for index in field_names.keys():
+        attribute: str = field_names[index]
+        verbose_name: str = verbose_field_names[index].lower()
+        updated: bool = False
 
-    while not str_input_validator(first_name):
-        first_name = input(f"Фамилия({record['first_name']}): ")
-        if not first_name:
-            first_name = record["first_name"]
+        # Запрос информации пока значение не поменяется
+        while not updated:
+            current_value = getattr(record, attribute)  # type: str | int
+            value: str = input(f"Введите {verbose_name}({current_value})\n")
 
-    while not str_input_validator(patronymic):
-        patronymic = input(f"Отчество({record['patronymic']}): ")
-        if not patronymic:
-            patronymic = record["patronymic"]
+            if not value:  # Если ответ не вводить сохранится старое значение
+                break
 
-    while not str_input_validator(company):
-        company = input(f"Название компании({record['company']}): ")
-        if not company:
-            company = record["company"]
+            setattr(record, attribute, value)
+            print()
+            # Блок проверки информации. Валидация строковых полей и полей с телефонами
+            if record.__annotations__[attribute] is str:
+                if record.str_validator(attribute, default_data=current_value):
+                    updated = True
 
-    while not phone_number_validator(work_phone):
-        work_phone = input(f"Рабочий телефон({record['work_phone']}): ")
-        if not work_phone:
-            work_phone = record["work_phone"]
+            elif attribute.count("phone"):
+                if record.phone_validator(attribute, default_data=current_value):
+                    updated = True
+            else:  # На случай несанкционированных изменений полей в Record
+                border_msg("Неизвестный тип поля! Обратитесь к администратору!")
 
-    while not phone_number_validator(mobile_phone):
-        mobile_phone = input(f"Мобильный телефон({record['mobile_phone']}): ")
-        if not mobile_phone:
-            mobile_phone = record["mobile_phone"]
-    data = {
-        "id": int(record_id),
-        "last_name": last_name,
-        "first_name": first_name,
-        "patronymic": patronymic,
-        "company": company,
-        "work_phone": work_phone,
-        "mobile_phone": mobile_phone,
-    }
-    phone_book.edit_record(data, record)
-    record = phone_book.get_record_by_id(int(record_id))
-    input(readeble_view(data) + "\nНажмите Enter для возврата.")
+    # Сохранение изменений в БД
+    phone_book.edit_record(new_record=record.__dict__, current_record=currrent_record)
+    input(record.readeble_view() + "\nНажмите Enter для возврата.")
+
+    # В объекте PhoneBook изменения не фиксируются, потому что при
+    # каждом вызове start() он создается на основе актуальных данных в БД
     return start()
 
 
-def search_record(phone_book: PhoneBook):
-    verbose_fields = Record().get_verbose_field_names()
-    fields = Record().get_field_names()
-    options = verbose_fields.keys()
-    search_terms: list = list()
-    print("Выберите критерий для поиска:")
-    for count, key in verbose_fields.items():
-        print(f"{key} - {count}")
+def search_record(phone_book: PhoneBook) -> NoReturn:
+    """Логика пункта меню поиска запиcей"""
+
+    # Словари имен полей(читабельные и имена в БД), список возможных критертев
+    verbose_field_names: dict = Record().get_verbose_field_names()
+    field_names: dict = Record().get_field_names()
+    options = verbose_field_names.keys()  # type: dict_keys
+    search_terms: list = list()  # Переменная для хранения выбранных критертев
+
+    print("Выберите критерии для поиска:")
+    for option, field in verbose_field_names.items():  # Генератор полей для поиска
+        print(f"{field} - {option}")
+
+    # Запрос информации пока не получен валидный список критериев для поиска
     while not search_terms:
         input_terms = input(
             f"""
@@ -192,9 +179,11 @@ def search_record(phone_book: PhoneBook):
                 "Необходимо ввести либо номер ответа либо несколько номеров через пробел!"
             )
     terms_dict: dict = dict()
-    for count, _ in verbose_fields.items():
+    for count, _ in verbose_field_names.items():
         if count in search_terms:
-            field_name = verbose_fields[count].lower()
-            terms_dict[fields[count]] = input(f"Введите {field_name}:\n")
+            field_name = verbose_field_names[count].lower()
+            terms_dict[field_names[count]] = input(f"Введите {field_name}:\n")
+
+    # Запуск поиска по заданным критериям
     phone_book.search_records(search_terms=terms_dict)
     return start()
